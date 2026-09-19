@@ -356,22 +356,20 @@
   // =========================================================================
   // BACKEND BRIDGE (fetch → Apps Script web app)
   // The frontend is hosted separately from the backend (e.g. GitHub Pages
-  // for these files, Apps Script for Code.gs), so there is no
-  // google.script.run bridge available — that only exists when Apps Script
-  // itself serves the page. Instead we POST to the deployed Apps Script
-  // /exec URL (see app-config.js) and attach the caller's live Firebase ID
-  // token on every call; Code.gs verifies it server-side and never trusts
-  // a client-claimed email.
+  // for these files, Apps Script for Code.gs), so we POST to the deployed
+  // Apps Script /exec URL (APPS_SCRIPT_URL, set in index.html) with the
+  // caller's live Firebase ID token on every call — Code.gs verifies it
+  // server-side and never trusts a client-claimed email.
   //
   // The POST body is sent as Content-Type: text/plain (not
   // application/json) on purpose: that keeps it a CORS "simple request" so
   // the browser skips an OPTIONS preflight, which Apps Script web apps
   // don't handle. Code.gs parses the JSON itself from the raw body.
   //
-  // Falls back to a local (localStorage) shim when app-config.js hasn't
+  // Falls back to a local (localStorage) shim when APPS_SCRIPT_URL hasn't
   // been set up yet, so the UI stays testable before a backend exists.
   // =========================================================================
-  const APPS_SCRIPT_URL = window.__APPS_SCRIPT_URL__ || '';
+  const APPS_SCRIPT_URL = window.APPS_SCRIPT_URL || '';
 
   const SERVER_ACTIONS = {
     getProgressForUser: 'getProgress',
@@ -381,7 +379,7 @@
   };
 
   if (!APPS_SCRIPT_URL) {
-    console.warn('[Gio\'s Chronology] app-config.js has no APPS_SCRIPT_URL set — running with a local-only fallback. Deploy Code.gs and set the URL for real Sheet sync.');
+    console.warn('[Gio\'s Chronology] APPS_SCRIPT_URL is not set in index.html — running with a local-only fallback. Deploy Code.gs and set the URL for real Sheet sync.');
   }
 
   function getAuthToken_() {
@@ -392,18 +390,18 @@
   }
 
   function callServer(fnName, payload) {
-    return getAuthToken_().then(function (idToken) {
-      if (!APPS_SCRIPT_URL) {
-        return localFallback(fnName, payload);
-      }
+    if (!APPS_SCRIPT_URL) {
+      return localFallback(fnName, payload);
+    }
 
+    return getAuthToken_().then(function (idToken) {
       return fetch(APPS_SCRIPT_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         body: JSON.stringify({
           action: SERVER_ACTIONS[fnName],
           idToken: idToken,
-          payload: payload
+          payload: payload || {}
         })
       })
         .then(function (res) { return res.json(); })
@@ -415,8 +413,7 @@
   }
 
   // Local-only fallback (used only when APPS_SCRIPT_URL isn't configured
-  // yet). Real token verification only happens server-side in Code.gs, so
-  // this shim just keys off the current signed-in user for local preview.
+  // yet), so the UI stays testable before a backend exists.
   function localFallback(fnName, payload) {
     const STORE_KEY = 'gc_local_progress_store';
     function readStore() {

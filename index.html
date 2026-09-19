@@ -152,11 +152,11 @@
 
   <div id="toastContainer" class="toast-container"></div>
 
-  <!-- Config files: firebase-config.js holds your real Firebase project
-       values (see firebase-config.example.js for the template). app-config.js
-       holds the deployed Apps Script backend URL. -->
-  <script src="firebase-config.js"></script>
-  <script src="app-config.js"></script>
+  <!-- ===================== CONFIG ===================== -->
+  <script>
+    // Your Apps Script Web App URL (Deploy > Manage deployments), ends in /exec.
+    window.APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwL17LN360AUfEdltsEcRIrLif0XSkfwFeZgTMLxrXluRFXVK4MCBjyJyvjx2UIigjaIw/exec";
+  </script>
 
   <!-- ===================== FIREBASE AUTH BOOTSTRAP ===================== -->
   <script type="module">
@@ -170,11 +170,17 @@
       getIdToken
     } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
 
-    if (!window.__FIREBASE_CONFIG__) {
-      throw new Error('Missing Firebase config. Create a "firebase-config" file — see firebase-config.example.js for the template.');
-    }
+    // Your Firebase project's web config (Project settings > General).
+    const firebaseConfig = {
+      apiKey: "AIzaSyD3P1zTnWwW6VonvZghgVTnb0Eokxr7AzE",
+      authDomain: "personal-32795.firebaseapp.com",
+      projectId: "personal-32795",
+      storageBucket: "personal-32795.firebasestorage.app",
+      messagingSenderId: "411479894150",
+      appId: "1:411479894150:web:3792309bfe01b025874907"
+    };
 
-    const firebaseApp = initializeApp(window.__FIREBASE_CONFIG__);
+    const firebaseApp = initializeApp(firebaseConfig);
     const auth = getAuth(firebaseApp);
 
     // Expose Firebase auth primitives on window so script.js (non-module) can use them.
