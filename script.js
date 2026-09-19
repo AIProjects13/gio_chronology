@@ -354,17 +354,34 @@
   }
 
   // =========================================================================
-  // BACKEND BRIDGE (google.script.run)
-  // Wraps google.script.run in a Promise and attaches the caller's live
-  // Firebase ID token as the first argument to every call — Code.gs verifies
-  // it server-side and never trusts a client-claimed email. Falls back to a
-  // local shim when previewed outside the Apps Script environment so the UI
-  // stays testable.
+  // BACKEND BRIDGE (fetch → Apps Script web app)
+  // The frontend is hosted separately from the backend (e.g. GitHub Pages
+  // for these files, Apps Script for Code.gs), so there is no
+  // google.script.run bridge available — that only exists when Apps Script
+  // itself serves the page. Instead we POST to the deployed Apps Script
+  // /exec URL (see app-config.js) and attach the caller's live Firebase ID
+  // token on every call; Code.gs verifies it server-side and never trusts
+  // a client-claimed email.
+  //
+  // The POST body is sent as Content-Type: text/plain (not
+  // application/json) on purpose: that keeps it a CORS "simple request" so
+  // the browser skips an OPTIONS preflight, which Apps Script web apps
+  // don't handle. Code.gs parses the JSON itself from the raw body.
+  //
+  // Falls back to a local (localStorage) shim when app-config.js hasn't
+  // been set up yet, so the UI stays testable before a backend exists.
   // =========================================================================
-  const hasAppsScriptBridge = typeof google !== 'undefined' && !!google.script && !!google.script.run;
+  const APPS_SCRIPT_URL = window.__APPS_SCRIPT_URL__ || '';
 
-  if (!hasAppsScriptBridge) {
-    console.warn('[Gio\'s Chronology] google.script.run is not available — running with a local-only fallback. Deploy inside Google Apps Script for real Sheet sync.');
+  const SERVER_ACTIONS = {
+    getProgressForUser: 'getProgress',
+    saveProgress: 'saveProgress',
+    saveProgressBatch: 'saveProgressBatch',
+    deleteProgress: 'deleteProgress'
+  };
+
+  if (!APPS_SCRIPT_URL) {
+    console.warn('[Gio\'s Chronology] app-config.js has no APPS_SCRIPT_URL set — running with a local-only fallback. Deploy Code.gs and set the URL for real Sheet sync.');
   }
 
   function getAuthToken_() {
@@ -374,26 +391,33 @@
     return fb.getIdToken(fb.auth.currentUser);
   }
 
-  function callServer(fnName, ...args) {
+  function callServer(fnName, payload) {
     return getAuthToken_().then(function (idToken) {
-      const fullArgs = [idToken].concat(args);
-
-      if (hasAppsScriptBridge) {
-        return new Promise(function (resolve, reject) {
-          google.script.run
-            .withSuccessHandler(resolve)
-            .withFailureHandler(function (err) { reject(err); })
-            [fnName].apply(google.script.run, fullArgs);
-        });
+      if (!APPS_SCRIPT_URL) {
+        return localFallback(fnName, payload);
       }
-      return localFallback(fnName, fullArgs);
+
+      return fetch(APPS_SCRIPT_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({
+          action: SERVER_ACTIONS[fnName],
+          idToken: idToken,
+          payload: payload
+        })
+      })
+        .then(function (res) { return res.json(); })
+        .then(function (json) {
+          if (!json || !json.ok) throw new Error((json && json.error) || 'Request failed.');
+          return json.data;
+        });
     });
   }
 
-  // Local-only fallback (used only when not running inside Apps Script).
-  // Real token verification only happens server-side in Code.gs, so this
-  // shim just keys off the current signed-in user for local preview/testing.
-  function localFallback(fnName, args) {
+  // Local-only fallback (used only when APPS_SCRIPT_URL isn't configured
+  // yet). Real token verification only happens server-side in Code.gs, so
+  // this shim just keys off the current signed-in user for local preview.
+  function localFallback(fnName, payload) {
     const STORE_KEY = 'gc_local_progress_store';
     function readStore() {
       try { return JSON.parse(safeLocalStorageGet(STORE_KEY) || '{}'); } catch (e) { return {}; }
@@ -413,7 +437,7 @@
       }
 
       if (fnName === 'saveProgress') {
-        const record = args[1];
+        const record = payload;
         store[email] = store[email] || {};
         const key = record.moduleId + '__' + record.topicId;
         const saved = {

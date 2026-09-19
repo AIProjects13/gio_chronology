@@ -6,7 +6,7 @@
 <title>Gio's Chronology — CSM/TPM Learning Tracker</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-<?!= HtmlService.createHtmlOutputFromFile('styles').getContent(); ?>
+<link rel="stylesheet" href="styles.css" />
 </head>
 <body>
 
@@ -152,11 +152,13 @@
 
   <div id="toastContainer" class="toast-container"></div>
 
-  <!-- ===================== FIREBASE CONFIG (kept out of the main files —
-       see firebase-config.js / firebase-config.example.js) ===================== -->
-  <?!= HtmlService.createHtmlOutputFromFile('firebase-config').getContent(); ?>
+  <!-- Config files: firebase-config.js holds your real Firebase project
+       values (see firebase-config.example.js for the template). app-config.js
+       holds the deployed Apps Script backend URL. -->
+  <script src="firebase-config.js"></script>
+  <script src="app-config.js"></script>
 
-  <!-- ===================== FIREBASE + APP SCRIPT ===================== -->
+  <!-- ===================== FIREBASE AUTH BOOTSTRAP ===================== -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
     import {
@@ -191,6 +193,6 @@
     window.dispatchEvent(new CustomEvent('firebase-ready'));
   </script>
 
-  <?!= HtmlService.createHtmlOutputFromFile('script').getContent(); ?>
+  <script src="script.js"></script>
 </body>
 </html>
