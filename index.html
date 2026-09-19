@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Gio's Chronology — CSM/TPM Learning Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<?!= HtmlService.createHtmlOutputFromFile('styles').getContent(); ?>
+</head>
+<body>
+
+  <!-- ===================== TOP BAR ===================== -->
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">
+        <span class="brand-mark">GC</span>
+        <div class="brand-text">
+          <h1>Gio's Chronology</h1>
+          <p>CSM / Technical PM Learning Tracker</p>
+        </div>
+      </div>
+
+      <div class="topbar-actions">
+        <button id="themeToggleBtn" class="icon-btn" title="Toggle dark / light mode" aria-label="Toggle theme">
+          <svg id="iconSun" class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="4"></circle>
+            <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"></path>
+          </svg>
+          <svg id="iconMoon" class="icon hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+          </svg>
+        </button>
+
+        <div id="userBadge" class="user-badge hidden">
+          <span id="userEmailLabel" class="user-email"></span>
+          <button id="signOutBtn" class="btn btn-ghost btn-sm">Sign out</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ===================== AUTH SCREEN ===================== -->
+  <main id="authScreen" class="auth-screen">
+    <div class="auth-card card">
+      <div class="auth-header">
+        <span class="brand-mark brand-mark-lg">GC</span>
+        <h2>Welcome back</h2>
+        <p class="muted">Sign in to track your learning progress across all 5 modules.</p>
+      </div>
+
+      <div id="authError" class="alert alert-error hidden"></div>
+      <div id="authInfo" class="alert alert-info hidden"></div>
+
+      <form id="emailAuthForm" class="auth-form">
+        <label class="field">
+          <span class="field-label">Email</span>
+          <input type="email" id="authEmail" autocomplete="email" required placeholder="you@example.com" />
+        </label>
+        <label class="field">
+          <span class="field-label">Password</span>
+          <input type="password" id="authPassword" autocomplete="current-password" required placeholder="••••••••" minlength="6" />
+        </label>
+
+        <div class="auth-form-actions">
+          <button type="submit" id="signInBtn" class="btn btn-primary btn-block">Sign In</button>
+          <button type="button" id="signUpBtn" class="btn btn-secondary btn-block">Create Account</button>
+        </div>
+      </form>
+    </div>
+  </main>
+
+  <!-- ===================== APP SHELL ===================== -->
+  <main id="appShell" class="app-shell hidden">
+
+    <!-- Overall progress -->
+    <section class="overview card">
+      <div class="overview-text">
+        <h2>Your Progress</h2>
+        <p class="muted" id="overviewSubtitle">Loading progress…</p>
+      </div>
+      <div class="overview-stats">
+        <div class="stat">
+          <span id="statCompleted" class="stat-value">0</span>
+          <span class="stat-label">Completed</span>
+        </div>
+        <div class="stat">
+          <span id="statInProgress" class="stat-value">0</span>
+          <span class="stat-label">In Progress</span>
+        </div>
+        <div class="stat">
+          <span id="statTotal" class="stat-value">0</span>
+          <span class="stat-label">Total Topics</span>
+        </div>
+      </div>
+      <div class="progress-bar-track">
+        <div id="overallProgressBar" class="progress-bar-fill" style="width:0%"></div>
+      </div>
+    </section>
+
+    <div id="syncBanner" class="sync-banner hidden">
+      <span id="syncBannerText">Syncing…</span>
+    </div>
+
+    <!-- Module list -->
+    <section id="modulesContainer" class="modules-container"></section>
+  </main>
+
+  <!-- ===================== NOTES MODAL ===================== -->
+  <div id="notesModalOverlay" class="modal-overlay hidden">
+    <div class="modal card">
+      <div class="modal-header">
+        <div>
+          <h3 id="notesModalTitle">Topic Notes</h3>
+          <p id="notesModalSubtitle" class="muted"></p>
+        </div>
+        <button id="notesModalCloseBtn" class="icon-btn" aria-label="Close">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 6L6 18M6 6l12 12"></path>
+          </svg>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <label class="field">
+          <span class="field-label">Status</span>
+          <select id="notesStatusSelect" class="select">
+            <option value="Not Started">Not Started</option>
+            <option value="In Progress">In Progress</option>
+            <option value="Completed">Completed</option>
+          </select>
+        </label>
+
+        <label class="field">
+          <span class="field-label">Notes, takeaways &amp; links</span>
+          <textarea id="notesTextarea" rows="8" placeholder="Write your notes, key takeaways, or reference links here..."></textarea>
+        </label>
+
+        <a id="notesYoutubeLink" href="#" target="_blank" rel="noopener noreferrer" class="youtube-link">
+          <svg class="icon" viewBox="0 0 24 24" fill="currentColor"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.6 3.5 12 3.5 12 3.5s-7.6 0-9.4.6A3 3 0 0 0 .5 6.2 31 31 0 0 0 0 12a31 31 0 0 0 .5 5.8 3 3 0 0 0 2.1 2.1c1.8.6 9.4.6 9.4.6s7.6 0 9.4-.6a3 3 0 0 0 2.1-2.1A31 31 0 0 0 24 12a31 31 0 0 0-.5-5.8ZM9.6 15.5v-7l6.3 3.5-6.3 3.5Z"/></svg>
+          Search this topic on YouTube
+        </a>
+      </div>
+
+      <div class="modal-footer">
+        <span id="notesSavedLabel" class="muted small hidden">Saved ✓</span>
+        <button id="notesCancelBtn" class="btn btn-ghost">Cancel</button>
+        <button id="notesSaveBtn" class="btn btn-primary">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toastContainer" class="toast-container"></div>
+
+  <!-- ===================== FIREBASE CONFIG (kept out of the main files —
+       see firebase-config.js / firebase-config.example.js) ===================== -->
+  <?!= HtmlService.createHtmlOutputFromFile('firebase-config').getContent(); ?>
+
+  <!-- ===================== FIREBASE + APP SCRIPT ===================== -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+    import {
+      getAuth,
+      onAuthStateChanged,
+      signInWithEmailAndPassword,
+      createUserWithEmailAndPassword,
+      signOut,
+      getIdToken
+    } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+
+    if (!window.__FIREBASE_CONFIG__) {
+      throw new Error('Missing Firebase config. Create a "firebase-config" file — see firebase-config.example.js for the template.');
+    }
+
+    const firebaseApp = initializeApp(window.__FIREBASE_CONFIG__);
+    const auth = getAuth(firebaseApp);
+
+    // Expose Firebase auth primitives on window so script.js (non-module) can use them.
+    window.__firebase = {
+      auth,
+      onAuthStateChanged,
+      signInWithEmailAndPassword,
+      createUserWithEmailAndPassword,
+      signOut,
+      getIdToken
+    };
+
+    // Signal that Firebase is ready. Set a flag (not just an event) since
+    // this module script may finish before script.js attaches its listener.
+    window.__firebaseReady = true;
+    window.dispatchEvent(new CustomEvent('firebase-ready'));
+  </script>
+
+  <?!= HtmlService.createHtmlOutputFromFile('script').getContent(); ?>
+</body>
+</html>
