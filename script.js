@@ -277,7 +277,6 @@
     authEmail: document.getElementById('authEmail'),
     authPassword: document.getElementById('authPassword'),
     signInBtn: document.getElementById('signInBtn'),
-    signUpBtn: document.getElementById('signUpBtn'),
 
     overviewSubtitle: document.getElementById('overviewSubtitle'),
     statCompleted: document.getElementById('statCompleted'),
@@ -522,9 +521,7 @@
       'auth/invalid-email': 'That email address looks invalid.',
       'auth/user-not-found': 'No account found with that email.',
       'auth/wrong-password': 'Incorrect password. Please try again.',
-      'auth/invalid-credential': 'Incorrect email or password.',
-      'auth/email-already-in-use': 'An account already exists with that email. Try signing in instead.',
-      'auth/weak-password': 'Password should be at least 6 characters.'
+      'auth/invalid-credential': 'Incorrect email or password.'
     };
     return map[code] || (err && err.message) || 'Something went wrong. Please try again.';
   }
@@ -539,11 +536,6 @@
     handleSignIn();
   });
 
-  el.signUpBtn.addEventListener('click', function (e) {
-    e.preventDefault();
-    handleSignUp();
-  });
-
   function handleSignIn() {
     if (!fb) return;
     clearAuthAlerts();
@@ -556,24 +548,6 @@
       .finally(function () { setAuthButtonsDisabled(false); });
   }
 
-  function handleSignUp() {
-    if (!fb) return;
-    clearAuthAlerts();
-    const email = el.authEmail.value.trim();
-    const password = el.authPassword.value;
-
-    if (!email || password.length < 6) {
-      showAuthError('Enter a valid email and a password with at least 6 characters.');
-      return;
-    }
-
-    setAuthButtonsDisabled(true);
-    fb.createUserWithEmailAndPassword(fb.auth, email, password)
-      .then(function () { showAuthInfo('Account created! You are now signed in.'); })
-      .catch(function (err) { showAuthError(friendlyAuthError(err)); })
-      .finally(function () { setAuthButtonsDisabled(false); });
-  }
-
   el.signOutBtn.addEventListener('click', function () {
     if (!fb) return;
     fb.signOut(fb.auth);
@@ -581,7 +555,6 @@
 
   function setAuthButtonsDisabled(disabled) {
     el.signInBtn.disabled = disabled;
-    el.signUpBtn.disabled = disabled;
   }
 
   // =========================================================================
